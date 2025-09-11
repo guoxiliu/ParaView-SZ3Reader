@@ -1,0 +1,10 @@
+NAME
+  SZ3Reader::vtkSZ3Reader
+LIBRARY_NAME
+  vtkSZ3Reader
+DEPENDS
+  VTK::CommonExecutionModel
+PRIVATE_DEPENDS
+  ParaView::VTKExtensionsCore
+  VTK::CommonCore
+  VTK::CommonDataModel
