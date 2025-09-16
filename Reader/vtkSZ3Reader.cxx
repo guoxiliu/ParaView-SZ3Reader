@@ -22,7 +22,7 @@ vtkSZ3Reader::vtkSZ3Reader()
   this->DomainDimensions[0] = 0;
   this->DomainDimensions[1] = 0;
   this->DomainDimensions[2] = 0;
-  this->DataType = "Float32";
+  this->UseDoublePrecision = 0;
   this->SetNumberOfInputPorts(0);
   this->SetNumberOfOutputPorts(1);
 }
@@ -47,17 +47,6 @@ void vtkSZ3Reader::GetDomainDimensions(int& x, int& y, int& z)
   z = this->DomainDimensions[2];
 }
 
-void vtkSZ3Reader::SetDataType(const std::string& type)
-{
-  this->DataType = type;
-  this->Modified();
-}
-
-std::string vtkSZ3Reader::GetDataType() const
-{
-  return this->DataType;
-}
-
 int vtkSZ3Reader::RequestData(
   vtkInformation* /*request*/, vtkInformationVector** /*inputVector*/, vtkInformationVector* outputVector)
 {
@@ -65,12 +54,19 @@ int vtkSZ3Reader::RequestData(
   std::cout << "Hello World from vtkSZ3Reader!" << std::endl;
   std::cout << "FileName: " << (this->FileName ? this->FileName : "(none)") << std::endl;
   std::cout << "DomainDimensions: " << this->DomainDimensions[0] << ", " << this->DomainDimensions[1] << ", " << this->DomainDimensions[2] << std::endl;
-  std::cout << "DataType: " << this->DataType << std::endl;
+  std::cout << "DoublePrecision: " << this->UseDoublePrecision << std::endl;
 
-  output->SetDimensions(1, 1, 1);
-  output->AllocateScalars(VTK_FLOAT, 1);
-  float* pixel = static_cast<float*>(output->GetScalarPointer());
-  pixel[0] = 42.0f;
+  if (this->UseDoublePrecision) {
+    output->SetDimensions(1, 1, 1);
+    output->AllocateScalars(VTK_DOUBLE, 1);
+    double* pixel = static_cast<double*>(output->GetScalarPointer());
+    pixel[0] = 42.0;
+  } else {
+    output->SetDimensions(1, 1, 1);
+    output->AllocateScalars(VTK_FLOAT, 1);
+    float* pixel = static_cast<float*>(output->GetScalarPointer());
+    pixel[0] = 42.0f;
+  }
   return 1;
 }
 
@@ -97,19 +93,10 @@ int vtkSZ3Reader::RequestInformation(
   return 1;
 }
 
-int vtkBDATReader::RequestInformation(
-    vtkInformation*, 
-    vtkInformationVector**, 
-    vtkInformationVector* outVec)
-{
-  
-  return 1;
-}
-
 void vtkSZ3Reader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "FileName: " << (this->FileName ? this->FileName : "(none)") << "\n";
   os << indent << "DomainDimensions: " << this->DomainDimensions[0] << ", " << this->DomainDimensions[1] << ", " << this->DomainDimensions[2] << "\n";
-  os << indent << "DataType: " << this->DataType << "\n";
+  os << indent << "UseDoublePrecision: " << this->UseDoublePrecision << "\n";
 }

@@ -4,7 +4,6 @@ LIBRARY_NAME
   vtkSZ3Reader
 DEPENDS
   VTK::CommonExecutionModel
-PRIVATE_DEPENDS
   ParaView::VTKExtensionsCore
   VTK::CommonCore
   VTK::CommonDataModel

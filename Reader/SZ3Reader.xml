@@ -27,17 +27,16 @@
         </Documentation>
       </IntVectorProperty>
 
-      <EnumerationProperty
-        name="DataType"
-        command="SetDataType"
+      <IntVectorProperty
+        name="DoublePrecision"
+        command="SetDoublePrecision"
         number_of_elements="1"
-        default_values="Float32">
-        <EnumerationEntry value="Float32" text="Single-Precision (float)"/>
-        <EnumerationEntry value="Float64" text="Double-Precision (double)"/>
+        default_values="0">
+        <BooleanDomain name="bool" />
         <Documentation>
-          Select the data type for decompression: single-precision (float) or double-precision (double).
+          Check to use double precision (float64). If unchecked, single precision (float32) will be used.
         </Documentation>
-      </EnumerationProperty>
+      </IntVectorProperty>
 
       <Hints>
         <ReaderFactory extensions="sz3"
