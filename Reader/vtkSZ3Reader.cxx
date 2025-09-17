@@ -51,22 +51,58 @@ int vtkSZ3Reader::RequestData(
   vtkInformation* /*request*/, vtkInformationVector** /*inputVector*/, vtkInformationVector* outputVector)
 {
   vtkImageData* output = vtkImageData::GetData(outputVector);
-  std::cout << "Hello World from vtkSZ3Reader!" << std::endl;
+
   std::cout << "FileName: " << (this->FileName ? this->FileName : "(none)") << std::endl;
   std::cout << "DomainDimensions: " << this->DomainDimensions[0] << ", " << this->DomainDimensions[1] << ", " << this->DomainDimensions[2] << std::endl;
   std::cout << "DoublePrecision: " << this->UseDoublePrecision << std::endl;
 
-  if (this->UseDoublePrecision) {
-    output->SetDimensions(1, 1, 1);
-    output->AllocateScalars(VTK_DOUBLE, 1);
-    double* pixel = static_cast<double*>(output->GetScalarPointer());
-    pixel[0] = 42.0;
-  } else {
-    output->SetDimensions(1, 1, 1);
-    output->AllocateScalars(VTK_FLOAT, 1);
-    float* pixel = static_cast<float*>(output->GetScalarPointer());
-    pixel[0] = 42.0f;
+  if (!this->FileName)
+  {
+    vtkErrorMacro("A FileName must be specified.");
+    return 0;
   }
+
+  if (this->DomainDimensions[0] <= 0 || this->DomainDimensions[1] <= 0 || this->DomainDimensions[2] <= 0)
+  {
+    vtkErrorMacro("Dimensions must be greater than zero.");
+    return 0;
+  }
+
+  std::ifstream file(this->FileName, std::ios::binary);
+  if(!file){
+    vtkErrorMacro("Could not open file: " << this->FileName);
+    return 0;
+  }
+
+  file.seekg(0, std::ios::end);
+  size_t compressedSize = file.tellg();
+  file.seekg(0, std::ios::beg);
+  std::vector<char> compressedBuffer(compressedSize);
+  file.read(compressedBuffer.data(), compressedSize);
+  file.close();
+
+  auto conf = SZ3::Config(DomainDimensions[0], DomainDimensions[1], DomainDimensions[2]);
+
+
+  vtkNew<vtkFloatArray> dataArray;
+
+  dataArray->SetNumberOfComponents(1);
+  dataArray->SetNumberOfTuples(conf.num);
+  dataArray->SetName("scalar");
+
+  // Decompress directly into the VTK array's buffer
+  float* decompressedPtr = static_cast<float*>(dataArray->GetVoidPointer(0));
+  size_t decompressedSize = conf.num * sizeof(float);
+
+  SZ_decompress(conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedSize,
+  decompressedPtr);
+
+  output->AllocateScalars(VTK_FLOAT, 1);
+  output->GetPointData()->SetScalars(dataArray);
+
+  output->SetDimensions(this->DomainDimensions);
+
+
   return 1;
 }
 
