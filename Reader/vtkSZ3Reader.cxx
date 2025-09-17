@@ -3,6 +3,7 @@
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
 #include "vtkFloatArray.h"
+#include <vtkDoubleArray.h>
 #include "vtkImageAlgorithm.h"
 #include "vtkImageData.h"
 #include "vtkInformation.h"
@@ -50,7 +51,6 @@ void vtkSZ3Reader::GetDomainDimensions(int& x, int& y, int& z)
 int vtkSZ3Reader::RequestData(
   vtkInformation* /*request*/, vtkInformationVector** /*inputVector*/, vtkInformationVector* outputVector)
 {
-  vtkImageData* output = vtkImageData::GetData(outputVector);
 
   std::cout << "FileName: " << (this->FileName ? this->FileName : "(none)") << std::endl;
   std::cout << "DomainDimensions: " << this->DomainDimensions[0] << ", " << this->DomainDimensions[1] << ", " << this->DomainDimensions[2] << std::endl;
@@ -83,32 +83,53 @@ int vtkSZ3Reader::RequestData(
 
   auto conf = SZ3::Config(DomainDimensions[0], DomainDimensions[1], DomainDimensions[2]);
 
-
-  vtkNew<vtkFloatArray> dataArray;
-
-  dataArray->SetNumberOfComponents(1);
-  dataArray->SetNumberOfTuples(conf.num);
-  dataArray->SetName("scalar");
-
-  // Decompress directly into the VTK array's buffer
-  float* decompressedPtr = static_cast<float*>(dataArray->GetVoidPointer(0));
-  size_t decompressedSize = conf.num * sizeof(float);
-
-  SZ_decompress(conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedSize,
-  decompressedPtr);
-
-  output->AllocateScalars(VTK_FLOAT, 1);
-  output->GetPointData()->SetScalars(dataArray);
-
+  vtkImageData* output = vtkImageData::GetData(outputVector);
   output->SetDimensions(this->DomainDimensions);
+
+
+
+  if(this->UseDoublePrecision){
+    vtkNew<vtkDoubleArray> dataArray;
+
+    dataArray->SetNumberOfComponents(1);
+    dataArray->SetNumberOfTuples(conf.num);
+    dataArray->SetName("scalar");
+
+    // Decompress directly into the VTK array's buffer
+    double* decompressedPtr = static_cast<double*>(dataArray->GetVoidPointer(0));
+    size_t decompressedSize = conf.num * sizeof(double);
+
+    SZ_decompress<double>(conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedSize, decompressedPtr);
+
+    output->AllocateScalars(VTK_DOUBLE, 1);
+    output->GetPointData()->SetScalars(dataArray);
+
+
+  } else {
+    vtkNew<vtkFloatArray> dataArray;
+
+    dataArray->SetNumberOfComponents(1);
+    dataArray->SetNumberOfTuples(conf.num);
+    dataArray->SetName("scalar");
+
+    // Decompress directly into the VTK array's buffer
+    float* decompressedPtr = static_cast<float*>(dataArray->GetVoidPointer(0));
+    size_t decompressedSize = conf.num * sizeof(float);
+
+    SZ_decompress<float>(conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedSize, decompressedPtr);
+
+    output->AllocateScalars(VTK_FLOAT, 1);
+    output->GetPointData()->SetScalars(dataArray);
+  }
+
 
 
   return 1;
 }
 
 int vtkSZ3Reader::RequestInformation(
-    vtkInformation* /*request*/, 
-    vtkInformationVector** /*inputVector*/, 
+    vtkInformation* /*request*/,
+    vtkInformationVector** /*inputVector*/,
     vtkInformationVector* outputVector)
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
