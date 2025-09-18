@@ -37,6 +37,9 @@ protected:
 private:
   vtkSZ3Reader(const vtkSZ3Reader&);
   void operator=(const vtkSZ3Reader&);
+
+  template <typename T>
+  void Decompress(vtkImageData* output, SZ3::Config& conf, std::vector<char>& compressedBuffer);
 };
 
 #endif

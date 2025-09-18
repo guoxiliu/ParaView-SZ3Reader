@@ -2,8 +2,7 @@
 
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
-#include "vtkFloatArray.h"
-#include <vtkDoubleArray.h>
+#include "vtkAOSDataArrayTemplate.h"
 #include "vtkImageAlgorithm.h"
 #include "vtkImageData.h"
 #include "vtkInformation.h"
@@ -56,20 +55,18 @@ int vtkSZ3Reader::RequestData(
   std::cout << "DomainDimensions: " << this->DomainDimensions[0] << ", " << this->DomainDimensions[1] << ", " << this->DomainDimensions[2] << std::endl;
   std::cout << "DoublePrecision: " << this->UseDoublePrecision << std::endl;
 
-  if (!this->FileName)
-  {
+  if (!this->FileName) {
     vtkErrorMacro("A FileName must be specified.");
     return 0;
   }
 
-  if (this->DomainDimensions[0] <= 0 || this->DomainDimensions[1] <= 0 || this->DomainDimensions[2] <= 0)
-  {
+  if (this->DomainDimensions[0] <= 0 || this->DomainDimensions[1] <= 0 || this->DomainDimensions[2] <= 0) {
     vtkErrorMacro("Dimensions must be greater than zero.");
     return 0;
   }
 
   std::ifstream file(this->FileName, std::ios::binary);
-  if(!file){
+  if(!file) {
     vtkErrorMacro("Could not open file: " << this->FileName);
     return 0;
   }
@@ -85,46 +82,42 @@ int vtkSZ3Reader::RequestData(
 
   vtkImageData* output = vtkImageData::GetData(outputVector);
   output->SetDimensions(this->DomainDimensions);
-
-
-
-  if(this->UseDoublePrecision){
-    vtkNew<vtkDoubleArray> dataArray;
-
-    dataArray->SetNumberOfComponents(1);
-    dataArray->SetNumberOfTuples(conf.num);
-    dataArray->SetName("scalar");
-
-    // Decompress directly into the VTK array's buffer
-    double* decompressedPtr = static_cast<double*>(dataArray->GetVoidPointer(0));
-    size_t decompressedSize = conf.num * sizeof(double);
-
-    SZ_decompress<double>(conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedSize, decompressedPtr);
-
-    output->AllocateScalars(VTK_DOUBLE, 1);
-    output->GetPointData()->SetScalars(dataArray);
-
-
-  } else {
-    vtkNew<vtkFloatArray> dataArray;
-
-    dataArray->SetNumberOfComponents(1);
-    dataArray->SetNumberOfTuples(conf.num);
-    dataArray->SetName("scalar");
-
-    // Decompress directly into the VTK array's buffer
-    float* decompressedPtr = static_cast<float*>(dataArray->GetVoidPointer(0));
-    size_t decompressedSize = conf.num * sizeof(float);
-
-    SZ_decompress<float>(conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedSize, decompressedPtr);
-
-    output->AllocateScalars(VTK_FLOAT, 1);
-    output->GetPointData()->SetScalars(dataArray);
+  
+  if (this->UseDoublePrecision) {
+    this->Decompress<double>(output, conf, compressedBuffer);
+  }
+  else {
+    this->Decompress<float>(output, conf, compressedBuffer);
   }
 
-
-
   return 1;
+}
+
+template <typename T>
+void vtkSZ3Reader::Decompress(
+  vtkImageData* output, SZ3::Config& conf, std::vector<char>& compressedBuffer)
+{
+  using VtkArrayT = vtkAOSDataArrayTemplate<T>;
+  vtkNew<VtkArrayT> dataArray;
+
+  dataArray->SetNumberOfComponents(1);
+  dataArray->SetNumberOfTuples(conf.num);
+  dataArray->SetName("scalar");
+
+  // Decompress directly into the VTK array's buffer
+  T* decompressedPtr = static_cast<T*>(dataArray->GetVoidPointer(0));
+
+  try {
+    SZ_decompress<T>(
+      conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedBuffer.size(), decompressedPtr);
+  }
+  catch (std::exception& e) {
+    vtkErrorMacro("Decompression failed: " << e.what());
+    return;
+  }
+
+  output->GetPointData()->AddArray(dataArray);
+  output->GetPointData()->SetScalars(dataArray);
 }
 
 int vtkSZ3Reader::RequestInformation(
@@ -134,7 +127,7 @@ int vtkSZ3Reader::RequestInformation(
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
-  // Set the whole extent based on DomainDimensions
+  // Set the whole extent
   int extent[6] = {0, 0, 0, 0, 0, 0};
   extent[1] = this->DomainDimensions[0] > 0 ? this->DomainDimensions[0] - 1 : 0;
   extent[3] = this->DomainDimensions[1] > 0 ? this->DomainDimensions[1] - 1 : 0;
