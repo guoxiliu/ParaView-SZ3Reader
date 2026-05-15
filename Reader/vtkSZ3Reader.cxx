@@ -12,7 +12,11 @@
 #include "vtkPointData.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+#include "sz3_compat/sz3_compat.hpp"
+
+#include <cstring>
 #include <iostream>
+#include <stdexcept>
 
 vtkStandardNewMacro(vtkSZ3Reader);
 
@@ -78,16 +82,14 @@ int vtkSZ3Reader::RequestData(
   file.read(compressedBuffer.data(), compressedSize);
   file.close();
 
-  auto conf = SZ3::Config(DomainDimensions[0], DomainDimensions[1], DomainDimensions[2]);
-
   vtkImageData* output = vtkImageData::GetData(outputVector);
   output->SetDimensions(this->DomainDimensions);
-  
+
   if (this->UseDoublePrecision) {
-    this->Decompress<double>(output, conf, compressedBuffer);
+    this->Decompress<double>(output, compressedBuffer);
   }
   else {
-    this->Decompress<float>(output, conf, compressedBuffer);
+    this->Decompress<float>(output, compressedBuffer);
   }
 
   return 1;
@@ -95,23 +97,38 @@ int vtkSZ3Reader::RequestData(
 
 template <typename T>
 void vtkSZ3Reader::Decompress(
-  vtkImageData* output, SZ3::Config& conf, std::vector<char>& compressedBuffer)
+  vtkImageData* output, std::vector<char>& compressedBuffer)
 {
   using VtkArrayT = vtkAOSDataArrayTemplate<T>;
   vtkNew<VtkArrayT> dataArray;
 
+  size_t num = static_cast<size_t>(DomainDimensions[0]) *
+               static_cast<size_t>(DomainDimensions[1]) *
+               static_cast<size_t>(DomainDimensions[2]);
+
   dataArray->SetNumberOfComponents(1);
-  dataArray->SetNumberOfTuples(conf.num);
+  dataArray->SetNumberOfTuples(num);
   dataArray->SetName("scalar");
 
-  // Decompress directly into the VTK array's buffer
-  T* decompressedPtr = static_cast<T*>(dataArray->GetVoidPointer(0));
+  std::vector<size_t> dims = {
+    static_cast<size_t>(DomainDimensions[0]),
+    static_cast<size_t>(DomainDimensions[1]),
+    static_cast<size_t>(DomainDimensions[2])
+  };
 
   try {
-    SZ_decompress<T>(
-      conf, reinterpret_cast<const char*>(compressedBuffer.data()), compressedBuffer.size(), decompressedPtr);
-  }
-  catch (std::exception& e) {
+    T* decompressedData = SZ3Compat::SZ3Compat_decompress<T>(
+      compressedBuffer.data(),
+      compressedBuffer.size(),
+      dims
+    );
+
+    T* vtkPtr = static_cast<T*>(dataArray->GetVoidPointer(0));
+    std::memcpy(vtkPtr, decompressedData, num * sizeof(T));
+
+    delete[] decompressedData;
+
+  } catch (const std::runtime_error& e) {
     vtkErrorMacro("Decompression failed: " << e.what());
     return;
   }
