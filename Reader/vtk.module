@@ -1,5 +1,5 @@
 NAME
-  sz3reader::vtkSZ3Reader
+  SZ3Reader::vtkSZ3Reader
 LIBRARY_NAME
   vtkSZ3Reader
 DEPENDS
