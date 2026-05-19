@@ -1,5 +1,5 @@
 NAME
-  sz3reader
+  SZ3Reader
 DESCRIPTION
   Reader for direct visualization of data using the SZ3 compressor.
 REQUIRES_MODULES

@@ -1,6 +1,6 @@
 <ServerManagerConfiguration>
   <ProxyGroup name="sources">
-    <SourceProxy name="sz3reader" class="vtkSZ3Reader" label="SZ3 Reader">
+    <SourceProxy name="SZ3Reader" class="vtkSZ3Reader" label="SZ3 Reader">
       <Documentation
         short_help="Read SZ3 files."
         long_help="Read data files that are compressed using the SZ3 compressor.">

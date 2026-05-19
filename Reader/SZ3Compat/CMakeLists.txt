@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 
 # SZ3Compat - Multi-version SZ3 decompression with dynamic plugins
-# Integrated for ParaView sz3reader plugin
+# Integrated for ParaView SZ3Reader plugin
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Plugin output directory - place plugins inside the sz3reader plugin folder
-set(SZ3COMPAT_PLUGIN_DIR "${CMAKE_BINARY_DIR}/lib/paraview-6.1/plugins/sz3reader"
+# Plugin output directory - place plugins inside the SZ3Reader plugin folder
+set(SZ3COMPAT_PLUGIN_DIR "${CMAKE_BINARY_DIR}/lib/paraview-6.1/plugins/SZ3Reader"
     CACHE PATH "Directory for SZ3 version plugins")
 file(MAKE_DIRECTORY ${SZ3COMPAT_PLUGIN_DIR})
 
