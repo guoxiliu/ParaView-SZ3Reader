@@ -31,4 +31,4 @@ paraview_plugin_build(
   PLUGINS ${plugins})
 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
-  DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}")
+  DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/sz3reader")
