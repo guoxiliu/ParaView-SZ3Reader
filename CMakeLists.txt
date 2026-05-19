@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(SZ3Reader)
+project(sz3reader)
 
 find_package(ParaView REQUIRED)
 
